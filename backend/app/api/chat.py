@@ -1,4 +1,4 @@
-"""POST /v1/chat/completions — Phase 4: retry + fallback wired in."""
+"""POST /v1/chat/completions — Phase 5: request logging wired in."""
 from __future__ import annotations
 
 import json
@@ -24,6 +24,7 @@ from app.schemas.chat import (
     RoutingCandidate,
     RoutingInfo,
 )
+from app.services.request_logger import log_request
 
 router = APIRouter()
 
@@ -97,20 +98,23 @@ async def chat_completions(
 
     # 2. Dispatch: non-streaming uses fallback pipeline; streaming has its own path.
     if body.stream:
-        return _make_streaming_response(body, routing_result)
-    return await _non_streaming(body, routing_result)
+        return _make_streaming_response(body, routing_result, session, strategy)
+    return await _non_streaming(body, routing_result, session, strategy)
 
 
 # ---------------------------------------------------------------------------
-# Non-streaming path  (retry + fallback)
+# Non-streaming path  (retry + fallback + logging)
 # ---------------------------------------------------------------------------
 
 
 async def _non_streaming(
     body: ChatRequest,
     routing_result: RoutingResult,
+    session: AsyncSession,
+    strategy: str,
 ) -> ChatResponse:
     t0 = time.monotonic()
+    status = "success"
     try:
         response, actual_model, fallback_used = await call_with_fallback(
             routing_result=routing_result,
@@ -123,6 +127,20 @@ async def _non_streaming(
 
     latency_ms = int((time.monotonic() - t0) * 1000)
     routing_info = _build_routing_info(routing_result, actual_model, latency_ms, fallback_used)
+
+    # Phase 5 — persist the request cycle.
+    await log_request(
+        session=session,
+        routing_result=routing_result,
+        response=response,
+        actual_model=actual_model,
+        latency_ms=latency_ms,
+        fallback_used=fallback_used,
+        strategy=strategy,
+        cost_usd=routing_info.cost_usd,
+        status=status,
+    )
+
     return response.model_copy(update={"routing": routing_info})
 
 
@@ -136,6 +154,8 @@ async def _non_streaming(
 def _make_streaming_response(
     body: ChatRequest,
     routing_result: RoutingResult,
+    session: AsyncSession,
+    strategy: str,
 ) -> StreamingResponse:
     completion_id = f"chatcmpl-{uuid.uuid4().hex}"
     primary_model = routing_result.selected
@@ -144,6 +164,7 @@ def _make_streaming_response(
         t0 = time.monotonic()
         actual_model = primary_model
         fallback_used = False
+        status = "success"
 
         # Resolve provider; attempt stream with retry on primary.
         provider = get_provider(primary_model.provider)
@@ -168,6 +189,7 @@ def _make_streaming_response(
         except Exception as exc:
             # Primary stream failed — attempt fallback via non-streaming generate().
             _health_tracker.record_failure(primary_model.id)
+            status = "error"
 
             # Find next healthy candidate.
             fallback_model = None
@@ -182,7 +204,7 @@ def _make_streaming_response(
                 yield "data: [DONE]\n\n"
                 return
 
-            # Emit a brief fallback notice chunk then generate from fallback.
+            # Generate from fallback provider.
             fallback_provider = get_provider(fallback_model.provider)
             fallback_request = body.model_copy(update={"model": fallback_model.id, "stream": False})
             try:
@@ -190,6 +212,7 @@ def _make_streaming_response(
                 _health_tracker.record_success(fallback_model.id)
                 actual_model = fallback_model
                 fallback_used = True
+                status = "success"
                 content = fb_response.choices[0].message.content if fb_response.choices else ""
                 data = json.dumps({
                     "id": completion_id,
@@ -225,5 +248,30 @@ def _make_streaming_response(
         yield f"event: routing_metadata\ndata: {routing_info.model_dump_json()}\n\n"
 
         yield "data: [DONE]\n\n"
+
+        # Phase 5 — persist after stream completes.
+        # Build a minimal response object for the logger (usage unknown in streaming).
+        from app.schemas.chat import ChatMessage, ChatResponseChoice  # noqa: PLC0415
+        dummy_response = ChatResponse(
+            id=completion_id,
+            model=actual_model.id,
+            choices=[ChatResponseChoice(
+                index=0,
+                message=ChatMessage(role="assistant", content=""),
+                finish_reason="stop",
+            )],
+            usage={},
+        )
+        await log_request(
+            session=session,
+            routing_result=routing_result,
+            response=dummy_response,
+            actual_model=actual_model,
+            latency_ms=latency_ms,
+            fallback_used=fallback_used,
+            strategy=strategy,
+            cost_usd=routing_info.cost_usd,
+            status=status,
+        )
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
