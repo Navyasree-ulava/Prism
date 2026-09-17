@@ -1,4 +1,5 @@
 """Anthropic provider adapter (translates to/from the Messages API)."""
+import json
 import uuid
 
 import httpx
@@ -74,3 +75,45 @@ class AnthropicProvider(LLMProvider):
                 "total_tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
             },
         )
+
+    async def stream(self, request: ChatRequest):  # type: ignore[override]
+        system_parts = [m.content for m in request.messages if m.role == "system"]
+        turns = [
+            {"role": m.role, "content": m.content}
+            for m in request.messages if m.role != "system"
+        ]
+        payload: dict = {
+            "model": request.model,
+            "messages": turns,
+            "max_tokens": request.max_tokens or _DEFAULT_MAX_TOKENS,
+            "stream": True,
+        }
+        if system_parts:
+            payload["system"] = "\n".join(system_parts)
+        if request.temperature is not None:
+            payload["temperature"] = request.temperature
+
+        headers = {
+            "x-api-key": settings.anthropic_api_key,
+            "anthropic-version": _ANTHROPIC_VERSION,
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            async with client.stream(
+                "POST",
+                f"{_ANTHROPIC_BASE}/messages",
+                json=payload,
+                headers=headers,
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        try:
+                            data = json.loads(line[6:])
+                            if data.get("type") == "content_block_delta":
+                                text = data.get("delta", {}).get("text", "")
+                                if text:
+                                    yield text
+                        except json.JSONDecodeError:
+                            continue

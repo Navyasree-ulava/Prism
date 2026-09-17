@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-
+Prism_BUILD_SPEC.md
 # Python
 __pycache__/
 *.py[cod]

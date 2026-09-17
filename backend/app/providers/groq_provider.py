@@ -3,6 +3,7 @@
 Groq exposes an OpenAI-compatible API, so this is a thin wrapper that
 points to the Groq base URL instead of api.openai.com.
 """
+import json
 import uuid
 
 import httpx
@@ -63,3 +64,40 @@ class GroqProvider(LLMProvider):
             choices=choices,
             usage=data.get("usage", {}),
         )
+
+    async def stream(self, request: ChatRequest):  # type: ignore[override]
+        payload = {
+            "model": request.model,
+            "messages": [m.model_dump() for m in request.messages],
+            "stream": True,
+        }
+        if request.temperature is not None:
+            payload["temperature"] = request.temperature
+        if request.max_tokens is not None:
+            payload["max_tokens"] = request.max_tokens
+
+        headers = {
+            "Authorization": f"Bearer {settings.groq_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            async with client.stream(
+                "POST",
+                f"{_GROQ_BASE}/chat/completions",
+                json=payload,
+                headers=headers,
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        data_str = line[6:].strip()
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            data = json.loads(data_str)
+                            content = data["choices"][0]["delta"].get("content", "")
+                            if content:
+                                yield content
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            continue
