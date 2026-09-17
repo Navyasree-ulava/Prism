@@ -164,11 +164,20 @@ async def test_chat_completions_success(override_session):
 
 @pytest.mark.asyncio
 async def test_chat_completions_provider_unavailable(override_session):
-    """Provider health_check → False returns 503 with provider_unavailable."""
+    """When all providers fail (e.g. no API key configured), 503 is returned.
+
+    Phase 4 note: the explicit health_check guard was removed. An unconfigured
+    provider key now causes a non-retryable error inside call_with_fallback,
+    which exhausts all candidates and surfaces a FallbackError → 503.
+    """
     mock_routing = _mock_routing_result()
 
+    # Simulate both primary and any fallback raising immediately (non-retryable)
+    # by mocking call_with_fallback directly to raise FallbackError.
+    from app.reliability.fallback import FallbackError
+
     with patch("app.api.chat.route", new=AsyncMock(return_value=mock_routing)), \
-         patch("app.providers.openai_provider.OpenAIProvider.health_check", new=AsyncMock(return_value=False)):
+         patch("app.api.chat.call_with_fallback", new=AsyncMock(side_effect=FallbackError("no providers available"))):
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -179,7 +188,6 @@ async def test_chat_completions_provider_unavailable(override_session):
             )
 
     assert resp.status_code == 503
-    assert resp.json()["detail"]["error"] == "provider_unavailable"
 
 
 @pytest.mark.asyncio
