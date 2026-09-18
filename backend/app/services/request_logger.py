@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 async def log_request(
     session: AsyncSession,
     routing_result: RoutingResult,
-    response: ChatResponse,
+    response: ChatResponse | None,
     actual_model: Any,        # Model ORM instance (may differ from ranked[0] on fallback)
     latency_ms: int,
     fallback_used: bool,
@@ -43,7 +43,7 @@ async def log_request(
     """
     try:
         request_id = uuid.uuid4()
-        usage = response.usage or {}
+        usage = (response.usage if response else {}) or {}
 
         # ── requests ──────────────────────────────────────────────────────── #
         analysis = routing_result.analysis
@@ -63,6 +63,10 @@ async def log_request(
             strategy=strategy,
         )
         session.add(request_row)
+        # Flush the parent row first so FK-dependent child rows can reference it.
+        # Without this, SQLAlchemy's unit-of-work may emit model_runs/routing_decisions
+        # INSERTs before requests, causing a ForeignKeyViolationError on PostgreSQL.
+        await session.flush([request_row])
 
         # ── routing_decisions ──────────────────────────────────────────────── #
         candidates_json = [

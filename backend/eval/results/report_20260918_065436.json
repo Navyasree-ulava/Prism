@@ -1,0 +1,771 @@
+{
+  "timestamp": "2026-09-18T06:54:36.813940+00:00",
+  "dataset_size": 60,
+  "strategy": "balanced",
+  "analyzer_mode": "heuristic",
+  "routing": {
+    "routing_accuracy": 0.9,
+    "random_baseline": 0.8222,
+    "total_routed_cost_usd": 0.015555,
+    "total_flagship_cost_usd": 0.03767,
+    "cost_savings_pct": 58.71,
+    "avg_routing_overhead_ms": 0.65,
+    "p95_routing_overhead_ms": 0.69,
+    "simulated_fallback_rate": 0.7167,
+    "entries": [
+      {
+        "query": "Write a Python function to reverse a linked list",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.69
+      },
+      {
+        "query": "Fix this bug in my React component: the state doesn't update on click",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.42
+      },
+      {
+        "query": "```python\ndef fib(n):\n    pass\n```\nImplement this recursive fibonacci function",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.43
+      },
+      {
+        "query": "Refactor this SQL query to use a window function instead of a subquery",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.24
+      },
+      {
+        "query": "Write a unit test for a REST API endpoint that validates email format",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.21
+      },
+      {
+        "query": "Debug this TypeError: 'NoneType' object is not subscriptable in my Flask app",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.28
+      },
+      {
+        "query": "Implement a binary search tree insert method in Java",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.66
+      },
+      {
+        "query": "Create a Dockerfile for a Node.js Express application",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.45
+      },
+      {
+        "query": "Write a script to parse CSV files and output JSON",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.19
+      },
+      {
+        "query": "Optimize this O(n^2) algorithm to O(n log n)",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.52
+      },
+      {
+        "query": "def merge_sort(arr): pass  # complete this function",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.23
+      },
+      {
+        "query": "Fix the memory leak in this C++ shared_ptr usage",
+        "selected_model": "gpt-4o-mini",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "coding",
+        "expected_task_type": "coding",
+        "overhead_ms": 0.2
+      },
+      {
+        "query": "Summarize this article about climate change policy in 3 bullet points",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.23
+      },
+      {
+        "query": "TL;DR this meeting transcript",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.29
+      },
+      {
+        "query": "Give me a brief overview of the key findings in this research paper abstract",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.26
+      },
+      {
+        "query": "Condense this 2000-word essay into one paragraph",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.16
+      },
+      {
+        "query": "Summarize the plot of War and Peace",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.16
+      },
+      {
+        "query": "Recap the main arguments from this debate transcript",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.17
+      },
+      {
+        "query": "Provide a summary of quarterly earnings highlights",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.19
+      },
+      {
+        "query": "Brief summary of Kubernetes architecture components",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.19
+      },
+      {
+        "query": "Summarize this legal contract focusing on termination clauses",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.45
+      },
+      {
+        "query": "Give me the key takeaways from this product review",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.58
+      },
+      {
+        "query": "Overview of the history of the Roman Empire in 5 sentences",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 10.33
+      },
+      {
+        "query": "Summarize this email thread about project delays",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.3
+      },
+      {
+        "query": "What is the capital of France?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.21
+      },
+      {
+        "query": "How many planets are in our solar system?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.74
+      },
+      {
+        "query": "Who invented the telephone?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.2
+      },
+      {
+        "query": "What year did World War II end?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.24
+      },
+      {
+        "query": "Is water wet?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.18
+      },
+      {
+        "query": "What is the speed of light in vacuum?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.19
+      },
+      {
+        "query": "Define photosynthesis in one sentence",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.2
+      },
+      {
+        "query": "What is the largest ocean on Earth?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.2
+      },
+      {
+        "query": "How do you convert Celsius to Fahrenheit?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.14
+      },
+      {
+        "query": "What is the Pythagorean theorem?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.27
+      },
+      {
+        "query": "Who wrote Romeo and Juliet?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.13
+      },
+      {
+        "query": "What is the boiling point of water at sea level?",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "llama3-8b-8192",
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": true,
+        "task_type": "qa",
+        "expected_task_type": "qa",
+        "overhead_ms": 0.15
+      },
+      {
+        "query": "Write a short poem about autumn leaves",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.52
+      },
+      {
+        "query": "Create a tagline for a sustainable coffee brand",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.32
+      },
+      {
+        "query": "Write a friendly welcome email for new SaaS users",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": false,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.29
+      },
+      {
+        "query": "Brainstorm 10 names for a mobile fitness app",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.25
+      },
+      {
+        "query": "Write a product description for wireless earbuds",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": false,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.34
+      },
+      {
+        "query": "Draft a LinkedIn post announcing a career change to AI engineering",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": false,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.37
+      },
+      {
+        "query": "Write dialogue between two characters meeting for the first time",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": false,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.56
+      },
+      {
+        "query": "Create a haiku about programming",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.44
+      },
+      {
+        "query": "Write a motivational speech for college graduates",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": false,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.25
+      },
+      {
+        "query": "Suggest a weekly meal plan for a vegetarian family of four",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.33
+      },
+      {
+        "query": "Write a fairy tale opening paragraph set in a floating city",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307"
+        ],
+        "routing_hit": false,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.25
+      },
+      {
+        "query": "Compose a thank-you note for a job interview",
+        "selected_model": "llama3-8b-8192",
+        "acceptable": [
+          "gpt-4o-mini",
+          "claude-3-haiku-20240307",
+          "llama3-8b-8192"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 10.46
+      },
+      {
+        "query": "Analyze this 5000-word policy document and identify contradictions in sections 3",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.53
+      },
+      {
+        "query": "Compare the economic arguments in these two lengthy whitepapers on UBI",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.31
+      },
+      {
+        "query": "Review this full technical specification and list all API breaking changes",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.24
+      },
+      {
+        "query": "Extract all date references from this lengthy legal deposition transcript",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.22
+      },
+      {
+        "query": "Analyze themes across these three novel chapters totaling 8000 words",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.21
+      },
+      {
+        "query": "Identify security vulnerabilities described in this 3000-word pentest report",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.63
+      },
+      {
+        "query": "Cross-reference claims in this research literature review with cited sources",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.32
+      },
+      {
+        "query": "Summarize differences between v1 and v2 of this 100-page requirements document",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "summarization",
+        "expected_task_type": "summarization",
+        "overhead_ms": 0.22
+      },
+      {
+        "query": "Analyze sentiment trends across 50 customer reviews in this attached dataset des",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.23
+      },
+      {
+        "query": "Map all stakeholder concerns mentioned throughout this project charter",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.45
+      },
+      {
+        "query": "Evaluate compliance gaps in this HIPAA audit report spanning multiple department",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.22
+      },
+      {
+        "query": "Compare architectural trade-offs documented in these two system design proposals",
+        "selected_model": "claude-3-haiku-20240307",
+        "acceptable": [
+          "claude-3-haiku-20240307",
+          "gpt-4o-mini"
+        ],
+        "routing_hit": true,
+        "task_type": "general",
+        "expected_task_type": "general",
+        "overhead_ms": 0.22
+      }
+    ]
+  },
+  "analyzers": {
+    "heuristic_task_type_accuracy": 0.9667,
+    "llm_task_type_accuracy": null,
+    "llm_analyzer_skipped": true
+  }
+}

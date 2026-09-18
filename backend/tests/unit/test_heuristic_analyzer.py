@@ -24,6 +24,14 @@ class TestTaskTypeClassification:
         assert result.task_type == "coding"
         assert result.confidence == 0.7
 
+    def test_coding_strong_unit_test_prompt(self):
+        result = analyze("Write a unit test for a REST API endpoint that validates email format")
+        assert result.task_type == "coding"
+
+    def test_coding_strong_dockerfile_prompt(self):
+        result = analyze("Create a Dockerfile for a Node.js Express application")
+        assert result.task_type == "coding"
+
     def test_summarization_keyword(self):
         result = analyze("Summarize this research paper for me")
         assert result.task_type == "summarization"
@@ -80,6 +88,11 @@ class TestEstimatedTokens:
         result = analyze(prompt)
         assert result.context_requirement == "high"
 
+    def test_long_context_cue_marks_high_context(self):
+        result = analyze("Analyze this 5000-word policy document for contradictions")
+        assert result.complexity == "high"
+        assert result.context_requirement == "high"
+
 
 class TestRequiredCapabilities:
     def test_coding_capabilities(self):
@@ -93,6 +106,10 @@ class TestRequiredCapabilities:
     def test_qa_capabilities(self):
         result = analyze("What is 2 + 2?")
         assert "qa" in result.required_capabilities
+
+    def test_high_context_adds_long_context_capability(self):
+        result = analyze("Review this full technical specification and list all API breaking changes")
+        assert "long_context" in result.required_capabilities
 
     def test_output_schema_valid(self):
         result = analyze("anything")

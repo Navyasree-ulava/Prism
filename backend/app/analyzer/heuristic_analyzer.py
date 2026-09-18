@@ -31,6 +31,10 @@ _CODING_STRONG = re.compile(
     r"|\bdef \b"
     r"|\bclass \b"
     r"|\bwrite\s+a\s+(function|class|script|program|method)\b"
+    r"|\bwrite\s+(a\s+)?unit\s+test\b"
+    r"|\bimplement\s+.+\b(method|function|class|algorithm|tree|list|api)\b"
+    r"|\bcreate\s+a\s+Dockerfile\b"
+    r"|\bfix\s+.+\b(memory leak|bug|error|exception|TypeError|shared_ptr)\b"
     r"|\b(implement|refactor|fix|debug)\b.{0,60}\b(function|class|bug|error|issue|code)\b",
     re.IGNORECASE | re.DOTALL,
 )
@@ -46,6 +50,18 @@ _MULTI_STEP = re.compile(
     r"(first|firstly).{1,200}(then|next|secondly).{1,200}(finally|lastly|lastly)"
     r"|(\d+[.)]\s+.+\n?){2,}",
     re.IGNORECASE | re.DOTALL,
+)
+_LONG_CONTEXT = re.compile(
+    r"\b("
+    r"long[- ]context|lengthy|full\s+(technical\s+)?specification|"
+    r"\d{3,}\s*[- ]?(word|page)|"
+    r"(\d+|two|three|multiple)\s+novel\s+chapters|"
+    r"\d+\s+customer reviews|"
+    r"transcript|deposition|literature review|project charter|audit report|"
+    r"whitepapers?|requirements document|legal contract|email thread|"
+    r"system design proposals"
+    r")\b",
+    re.IGNORECASE,
 )
 
 # Capability sets per task type
@@ -81,7 +97,9 @@ def analyze(prompt: str) -> AnalysisResult:
         task_type, confidence = "general", 0.6
 
     # --- Complexity ---
-    if word_count > 500 or _MULTI_STEP.search(prompt):
+    has_long_context_cue = bool(_LONG_CONTEXT.search(prompt))
+
+    if word_count > 500 or _MULTI_STEP.search(prompt) or has_long_context_cue:
         complexity = "high"
     elif word_count > 100:
         complexity = "medium"
@@ -89,17 +107,21 @@ def analyze(prompt: str) -> AnalysisResult:
         complexity = "low"
 
     # --- Context requirement ---
-    if estimated_tokens > 3000:
+    if estimated_tokens > 3000 or has_long_context_cue:
         context_requirement = "high"
     elif estimated_tokens > 1000:
         context_requirement = "medium"
     else:
         context_requirement = "low"
 
+    required_capabilities = list(_CAPABILITY_MAP[task_type])
+    if context_requirement == "high" and "long_context" not in required_capabilities:
+        required_capabilities.append("long_context")
+
     return AnalysisResult(
         task_type=task_type,
         complexity=complexity,
-        required_capabilities=_CAPABILITY_MAP[task_type],
+        required_capabilities=required_capabilities,
         context_requirement=context_requirement,
         estimated_input_tokens=estimated_tokens,
         confidence=confidence,

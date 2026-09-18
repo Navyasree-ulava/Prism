@@ -11,9 +11,7 @@ Seed model pricing used here:
 """
 import pytest
 
-
-def compute_cost(tokens_in: int, tokens_out: int, input_price_per_1k: float, output_price_per_1k: float) -> float:
-    return (tokens_in / 1000 * input_price_per_1k) + (tokens_out / 1000 * output_price_per_1k)
+from app.cost import compute_cost
 
 
 class TestCostFormula:

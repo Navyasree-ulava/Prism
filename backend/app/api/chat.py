@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import verify_api_key
 from app.config import settings
+from app.cost import cost_from_usage, estimate_cost
 from app.db import get_session
 from app.providers import get_provider
 from app.reliability.fallback import FallbackError, call_with_fallback
@@ -31,8 +32,6 @@ router = APIRouter()
 # Module-level singleton — lives for the process lifetime (in-memory, no Redis).
 _health_tracker = HealthTracker()
 
-_EST_OUTPUT_TOKENS = 500
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -44,16 +43,17 @@ def _build_routing_info(
     actual_model: object,
     latency_ms: int,
     fallback_used: bool = False,
+    usage: dict | None = None,
 ) -> RoutingInfo:
     """Build the RoutingInfo response object.
 
     Uses *actual_model* (which may differ from ranked[0] when fallback occurs)
     to compute cost and set selected_model.
     """
-    cost_usd = round(
-        result.analysis.estimated_input_tokens / 1000 * actual_model.input_price_per_1k
-        + _EST_OUTPUT_TOKENS / 1000 * actual_model.output_price_per_1k,
-        6,
+    cost_usd = cost_from_usage(
+        actual_model,
+        usage or {},
+        result.analysis.estimated_input_tokens,
     )
     return RoutingInfo(
         selected_model=actual_model.id,
@@ -67,6 +67,31 @@ def _build_routing_info(
         fallback_used=fallback_used,
         cost_usd=cost_usd,
         latency_ms=latency_ms,
+    )
+
+
+async def _log_failure(
+    session: AsyncSession,
+    routing_result: RoutingResult,
+    actual_model: object,
+    latency_ms: int,
+    strategy: str,
+    *,
+    fallback_used: bool = False,
+    status: str = "error",
+) -> None:
+    """Persist a failed request cycle (no provider response available)."""
+    cost_usd = estimate_cost(actual_model, routing_result.analysis.estimated_input_tokens, 0)
+    await log_request(
+        session=session,
+        routing_result=routing_result,
+        response=None,
+        actual_model=actual_model,
+        latency_ms=latency_ms,
+        fallback_used=fallback_used,
+        strategy=strategy,
+        cost_usd=cost_usd,
+        status=status,
     )
 
 
@@ -114,7 +139,6 @@ async def _non_streaming(
     strategy: str,
 ) -> ChatResponse:
     t0 = time.monotonic()
-    status = "success"
     try:
         response, actual_model, fallback_used = await call_with_fallback(
             routing_result=routing_result,
@@ -123,12 +147,23 @@ async def _non_streaming(
             health_tracker=_health_tracker,
         )
     except FallbackError as exc:
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        await _log_failure(
+            session,
+            routing_result,
+            routing_result.selected,
+            latency_ms,
+            strategy,
+            fallback_used=True,
+            status="error",
+        )
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     latency_ms = int((time.monotonic() - t0) * 1000)
-    routing_info = _build_routing_info(routing_result, actual_model, latency_ms, fallback_used)
+    routing_info = _build_routing_info(
+        routing_result, actual_model, latency_ms, fallback_used, response.usage
+    )
 
-    # Phase 5 — persist the request cycle.
     await log_request(
         session=session,
         routing_result=routing_result,
@@ -138,7 +173,7 @@ async def _non_streaming(
         fallback_used=fallback_used,
         strategy=strategy,
         cost_usd=routing_info.cost_usd,
-        status=status,
+        status="success",
     )
 
     return response.model_copy(update={"routing": routing_info})
@@ -165,8 +200,8 @@ def _make_streaming_response(
         actual_model = primary_model
         fallback_used = False
         status = "success"
+        stream_usage: dict = {}
 
-        # Resolve provider; attempt stream with retry on primary.
         provider = get_provider(primary_model.provider)
         stream_request = body.model_copy(update={"model": primary_model.id})
 
@@ -187,11 +222,8 @@ def _make_streaming_response(
             _health_tracker.record_success(primary_model.id)
 
         except Exception as exc:
-            # Primary stream failed — attempt fallback via non-streaming generate().
             _health_tracker.record_failure(primary_model.id)
-            status = "error"
 
-            # Find next healthy candidate.
             fallback_model = None
             for scored in routing_result.ranked[1:]:
                 if _health_tracker.is_healthy(scored.model.id):
@@ -199,12 +231,16 @@ def _make_streaming_response(
                     break
 
             if fallback_model is None:
+                latency_ms = int((time.monotonic() - t0) * 1000)
+                await _log_failure(
+                    session, routing_result, primary_model, latency_ms, strategy,
+                    fallback_used=False, status="error",
+                )
                 error_event = json.dumps({"error": "all_providers_failed", "detail": str(exc)})
                 yield f"event: error\ndata: {error_event}\n\n"
                 yield "data: [DONE]\n\n"
                 return
 
-            # Generate from fallback provider.
             fallback_provider = get_provider(fallback_model.provider)
             fallback_request = body.model_copy(update={"model": fallback_model.id, "stream": False})
             try:
@@ -213,6 +249,7 @@ def _make_streaming_response(
                 actual_model = fallback_model
                 fallback_used = True
                 status = "success"
+                stream_usage = fb_response.usage or {}
                 content = fb_response.choices[0].message.content if fb_response.choices else ""
                 data = json.dumps({
                     "id": completion_id,
@@ -227,6 +264,11 @@ def _make_streaming_response(
                 yield f"data: {data}\n\n"
             except Exception as fb_exc:
                 _health_tracker.record_failure(fallback_model.id)
+                latency_ms = int((time.monotonic() - t0) * 1000)
+                await _log_failure(
+                    session, routing_result, fallback_model, latency_ms, strategy,
+                    fallback_used=True, status="error",
+                )
                 error_event = json.dumps({"error": "all_providers_failed", "detail": str(fb_exc)})
                 yield f"event: error\ndata: {error_event}\n\n"
                 yield "data: [DONE]\n\n"
@@ -234,7 +276,6 @@ def _make_streaming_response(
 
         latency_ms = int((time.monotonic() - t0) * 1000)
 
-        # Final stop chunk.
         stop_data = json.dumps({
             "id": completion_id,
             "object": "chat.completion.chunk",
@@ -243,14 +284,13 @@ def _make_streaming_response(
         })
         yield f"data: {stop_data}\n\n"
 
-        # Terminal routing metadata event.
-        routing_info = _build_routing_info(routing_result, actual_model, latency_ms, fallback_used)
+        routing_info = _build_routing_info(
+            routing_result, actual_model, latency_ms, fallback_used, stream_usage
+        )
         yield f"event: routing_metadata\ndata: {routing_info.model_dump_json()}\n\n"
 
         yield "data: [DONE]\n\n"
 
-        # Phase 5 — persist after stream completes.
-        # Build a minimal response object for the logger (usage unknown in streaming).
         from app.schemas.chat import ChatMessage, ChatResponseChoice  # noqa: PLC0415
         dummy_response = ChatResponse(
             id=completion_id,
@@ -260,7 +300,7 @@ def _make_streaming_response(
                 message=ChatMessage(role="assistant", content=""),
                 finish_reason="stop",
             )],
-            usage={},
+            usage=stream_usage,
         )
         await log_request(
             session=session,

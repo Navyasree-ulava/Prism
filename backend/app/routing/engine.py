@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.analyzer.heuristic_analyzer import AnalysisResult, analyze
+from app.analyzer import AnalysisResult, analyze_prompt
 from app.routing.filters import filter_by_capability, filter_by_health
 from app.routing.registry import load_active_models
 from app.routing.scorer import ScoredModel, score_candidates
@@ -74,7 +74,7 @@ async def route(
         m["content"] for m in messages if m.get("role") == "user"
     )
 
-    analysis = analyze(prompt)
+    analysis = await analyze_prompt(prompt)
 
     # Load all active models from DB.
     candidates = await load_active_models(session)

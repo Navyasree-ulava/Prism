@@ -16,13 +16,10 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models.model_run import ModelRun
-from app.models.request_log import Request
-from app.models.routing_decision import RoutingDecision
 
 router = APIRouter()
 
@@ -40,21 +37,6 @@ async def routing_stats(session: AsyncSession = Depends(get_session)):
         total_requests, success_rate, avg_latency_ms, total_cost_usd,
         fallback_rate, error_rate
     """
-    result = await session.execute(
-        select(
-            func.count(ModelRun.id).label("total_requests"),
-            func.avg(ModelRun.latency_ms).label("avg_latency_ms"),
-            func.sum(ModelRun.cost_usd).label("total_cost_usd"),
-            func.sum(
-                func.cast(ModelRun.fallback_used, type_=None)
-                if False  # replaced below per dialect
-                else ModelRun.fallback_used.cast(text("int"))
-                if False
-                else ModelRun.fallback_used
-            ).label("fallback_count"),
-        )
-    )
-    # Re-query with explicit casts that work on Postgres.
     raw = await session.execute(
         text("""
             SELECT
