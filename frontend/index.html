@@ -3,8 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prism — LLM Routing Gateway</title>
-    <meta name="description" content="Prism is an OpenAI-compatible LLM routing gateway with explainable routing decisions." />
+    <title>Prism Dashboard — LLM Routing Gateway</title>
+    <meta name="description" content="Prism admin dashboard: real-time routing stats, model performance, and request inspection for the Prism LLM routing gateway." />
+    <!-- Prevent flash of wrong theme -->
+    <script>
+      (function(){
+        var t = localStorage.getItem('prism-theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
