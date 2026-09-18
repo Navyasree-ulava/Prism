@@ -142,3 +142,44 @@ class TestScoreCandidates:
     def test_breakdown_keys_present(self):
         results = score_candidates([CHEAP_FAST], [], 100, STRATEGIES["balanced"])
         assert set(results[0].breakdown.keys()) == {"quality", "capability", "latency", "cost"}
+
+    def test_equal_score_secondary_tie_break_prefers_lower_latency(self):
+        """When two candidates have identical final scores, lower latency candidate wins."""
+        # Both models have identical quality, price, and caps. Latency differs.
+        # But wait: if latency differs, latency_score would differ unless weight["latency"] is 0.
+        # Using a custom weights dict with latency weight = 0 isolates the tie-break:
+        custom_weights = {"quality": 1.0, "capability": 0.0, "latency": 0.0, "cost": 0.0}
+        fast = _Model(
+            id="fast-model", quality_score=0.80, avg_latency_ms=200,
+            input_price_per_1k=0.001, output_price_per_1k=0.002, capabilities=["general"],
+        )
+        slow = _Model(
+            id="slow-model", quality_score=0.80, avg_latency_ms=800,
+            input_price_per_1k=0.001, output_price_per_1k=0.002, capabilities=["general"],
+        )
+        # Passing [slow, fast] should still rank fast first due to secondary tie-breaker
+        results1 = score_candidates([slow, fast], ["general"], 100, custom_weights)
+        assert results1[0].score == results1[1].score
+        assert results1[0].model.id == "fast-model"
+        assert results1[1].model.id == "slow-model"
+
+        # Reversed input order should produce identical ranking
+        results2 = score_candidates([fast, slow], ["general"], 100, custom_weights)
+        assert [r.model.id for r in results2] == ["fast-model", "slow-model"]
+
+    def test_equal_score_and_latency_tertiary_tie_break_alphabetical_id(self):
+        """When score and latency are both identical, alphabetical model ID is deterministic."""
+        custom_weights = {"quality": 1.0, "capability": 0.0, "latency": 0.0, "cost": 0.0}
+        model_b = _Model(
+            id="model-b", quality_score=0.80, avg_latency_ms=500,
+            input_price_per_1k=0.001, output_price_per_1k=0.002, capabilities=["general"],
+        )
+        model_a = _Model(
+            id="model-a", quality_score=0.80, avg_latency_ms=500,
+            input_price_per_1k=0.001, output_price_per_1k=0.002, capabilities=["general"],
+        )
+        # Regardless of input order, model-a must come before model-b
+        res1 = score_candidates([model_b, model_a], ["general"], 100, custom_weights)
+        res2 = score_candidates([model_a, model_b], ["general"], 100, custom_weights)
+        assert [r.model.id for r in res1] == ["model-a", "model-b"]
+        assert [r.model.id for r in res2] == ["model-a", "model-b"]

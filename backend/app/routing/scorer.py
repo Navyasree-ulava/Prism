@@ -85,4 +85,8 @@ def score_candidates(
             )
         )
 
-    return sorted(results, key=lambda x: x.score, reverse=True)
+    # Deterministic candidate ranking:
+    # 1. Primary: Score descending (higher composite score is better: -x.score)
+    # 2. Secondary tie-breaker: Average latency ascending (faster model preferred: x.model.avg_latency_ms)
+    # 3. Tertiary tie-breaker: Model ID ascending (lexicographical order guarantees 100% determinism)
+    return sorted(results, key=lambda x: (-x.score, x.model.avg_latency_ms, x.model.id))

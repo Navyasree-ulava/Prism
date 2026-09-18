@@ -199,7 +199,7 @@ async def test_models_performance_schema(override_session):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/admin/models-performance")
     row = resp.json()[0]
-    for key in ("model_id", "total_requests", "success_rate", "avg_latency_ms", "total_cost_usd"):
+    for key in ("model_id", "provider", "total_requests", "success_rate", "avg_latency_ms", "total_cost_usd"):
         assert key in row
 
 
@@ -208,9 +208,34 @@ async def test_models_performance_values(override_session):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/admin/models-performance")
     data = {row["model_id"]: row for row in resp.json()}
+    assert data["gpt-4o-mini"]["provider"] == "openai"
     assert data["gpt-4o-mini"]["total_requests"] == 1
     assert data["gpt-4o-mini"]["success_rate"] == 1.0
+    assert data["llama3-8b-8192"]["provider"] == "groq"
     assert data["llama3-8b-8192"]["total_requests"] == 1
+
+
+@pytest.mark.asyncio
+async def test_models_performance_authoritative_provider_for_groq_hosted_model(override_session, test_engine):
+    """openai/gpt-oss-20b should return provider='groq' from models table, not 'openai'."""
+    engine, req1, _ = test_engine
+    async with engine.begin() as conn:
+        await conn.execute(text("""
+            INSERT INTO models VALUES
+              ('openai/gpt-oss-20b', 'groq', '["general"]', 32768, 0.75, 0.0001, 0.0002, 450, 1)
+        """))
+        await conn.execute(text("""
+            INSERT INTO model_runs (id, request_id, model_id, latency_ms, tokens_in, tokens_out,
+                                   cost_usd, status, fallback_used)
+            VALUES
+              (:m_id, :r1, 'openai/gpt-oss-20b', 500, 120, 250, 0.00005, 'success', 0)
+        """), {"m_id": str(uuid.uuid4()), "r1": req1})
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/admin/models-performance")
+    data = {row["model_id"]: row for row in resp.json()}
+    assert "openai/gpt-oss-20b" in data
+    assert data["openai/gpt-oss-20b"]["provider"] == "groq"
 
 
 # ---------------------------------------------------------------------------

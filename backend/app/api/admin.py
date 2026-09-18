@@ -80,14 +80,16 @@ async def models_performance(session: AsyncSession = Depends(get_session)):
     raw = await session.execute(
         text("""
             SELECT
-                model_id,
+                mr.model_id,
+                COALESCE(m.provider, 'unknown')                              AS provider,
                 COUNT(*)                                                     AS total_requests,
-                COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0)
+                COALESCE(SUM(CASE WHEN mr.status = 'success' THEN 1 ELSE 0 END), 0)
                                                                              AS success_count,
-                AVG(latency_ms)                                              AS avg_latency_ms,
-                COALESCE(SUM(cost_usd), 0)                                   AS total_cost_usd
-            FROM model_runs
-            GROUP BY model_id
+                AVG(mr.latency_ms)                                           AS avg_latency_ms,
+                COALESCE(SUM(mr.cost_usd), 0)                                AS total_cost_usd
+            FROM model_runs mr
+            LEFT JOIN models m ON m.id = mr.model_id
+            GROUP BY mr.model_id, m.provider
             ORDER BY total_requests DESC
         """)
     )
@@ -96,6 +98,7 @@ async def models_performance(session: AsyncSession = Depends(get_session)):
     return [
         {
             "model_id": row["model_id"],
+            "provider": row["provider"],
             "total_requests": int(row["total_requests"]),
             "success_rate": round(
                 int(row["success_count"]) / int(row["total_requests"]), 4

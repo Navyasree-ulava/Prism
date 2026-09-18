@@ -7,5 +7,7 @@ from app.models.model_registry import Model
 
 async def load_active_models(session: AsyncSession) -> list[Model]:
     """Return all enabled models from the registry. Re-queries per request (no cache)."""
-    result = await session.execute(select(Model).where(Model.enabled == True))
+    result = await session.execute(
+        select(Model).where(Model.enabled == True).order_by(Model.id)
+    )
     return list(result.scalars().all())
