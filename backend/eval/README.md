@@ -12,6 +12,7 @@ python eval/run_eval.py
 ```
 
 Output lands in `eval/results/report_<timestamp>.json` and `.md`.
+Final run write-up with interpretation: [`RESULTS.md`](RESULTS.md).
 
 ## What Gets Measured
 
@@ -23,6 +24,14 @@ Output lands in `eval/results/report_<timestamp>.json` and `.md`.
 | **Latency overhead** | Time spent in analyzer + scoring (no provider call) |
 | **Fallback rate** | % of requests that would use fallback with a mocked primary failure |
 | **Analyzer comparison** | Heuristic vs LLM task_type classification accuracy vs labels |
+
+### Honest LLM-analyzer reporting (Phase 8)
+
+When `GROQ_API_KEY`/`OPENAI_API_KEY` is set, the LLM column is measured with
+`strict=True` — a failed LLM call is **counted as failed**, never silently scored
+as a heuristic result. The report shows `llm_classified` / `llm_failed` counts
+next to the accuracy (e.g. `94.9% (59 classified, 1 failed)`). Calls are paced
+(~1.5s apart with 429 backoff) to respect Groq's free-tier rate limit.
 
 ## Files
 
@@ -37,19 +46,17 @@ Output lands in `eval/results/report_<timestamp>.json` and `.md`.
 - Uses in-memory SQLite with the same 3 seeded models — no Postgres or API keys required for the default run.
 - Set `ANALYZER_MODE=llm` and provide `GROQ_API_KEY` or `OPENAI_API_KEY` to include live LLM analyzer comparison (otherwise LLM column uses heuristic fallback and is marked `skipped`).
 
-## Implementation Checklist (Phase 6)
+## Implementation Checklist (Phase 6 + Phase 8 wrap-up)
 
 - [x] `dataset.json` — 60 labeled entries
 - [x] `run_eval.py` — all 5 metrics + random baseline
 - [x] `analyzer/llm_analyzer.py` — cheap LLM classifier with heuristic fallback
 - [x] `ANALYZER_MODE` wired in routing engine
-- [ ] First full eval run with real API keys (optional, for report)
+- [x] Full eval run with real API keys (Phase 8.3) — results in `results/`
+- [x] Honest LLM reporting: `strict=True` + `llm_classified`/`llm_failed` counts
 - [ ] Tune `acceptable_models` labels after reviewing routing decisions
 
-## Next Steps (Phase 7)
+## Project Status
 
-Wire the frontend dashboard pages to the Phase 5 admin endpoints:
-1. Overview → `GET /admin/routing-stats`
-2. Model Performance → `GET /admin/models-performance`
-3. Routing Distribution → chart from decisions list
-4. Request Inspector → `GET /admin/decisions` + detail view
+All phases (0–8) are complete. See the root `README.md` for setup, API
+reference, and the final results summary.

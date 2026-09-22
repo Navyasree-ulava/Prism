@@ -22,6 +22,8 @@ from typing import Any
 # Allow running as `python eval/run_eval.py` from backend/
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import httpx
+
 from app.analyzer.heuristic_analyzer import analyze as heuristic_analyze
 from app.config import settings
 from app.cost import estimate_cost
@@ -57,6 +59,11 @@ SEED_MODELS = [
 ]
 
 FLAGSHIP_MODEL_ID = "claude-3-haiku-20240307"
+
+# Live LLM-analyzer pacing (Groq free tier rejects bursts with HTTP 429).
+_LLM_CALL_INTERVAL_S = 1.5   # sleep between LLM classification calls
+_LLM_429_BACKOFF_S = 5.0     # base wait before retrying a 429
+_LLM_MAX_ATTEMPTS = 3        # attempts per entry before counting a failure
 
 
 async def _load_seed_models(_session: Any) -> list[Model]:
@@ -189,6 +196,8 @@ async def _run_routing_eval(dataset: list[dict]) -> dict:
 async def _run_analyzer_eval(dataset: list[dict]) -> dict:
     heuristic_hits = 0
     llm_hits = 0
+    llm_calls = 0
+    llm_failures = 0
     llm_available = bool(settings.groq_api_key or settings.openai_api_key)
 
     for entry in dataset:
@@ -199,19 +208,54 @@ async def _run_analyzer_eval(dataset: list[dict]) -> dict:
         if llm_available:
             from app.analyzer.llm_analyzer import analyze as llm_analyze
 
-            l = await llm_analyze(entry["query"])
-            if l.task_type == entry["expected_task_type"]:
-                llm_hits += 1
+            # Pace + retry: Groq free tier rate-limits rapid bursts with 429.
+            # strict=True so a fallback-to-heuristic can't masquerade as an
+            # LLM classification in the report.
+            for attempt in range(_LLM_MAX_ATTEMPTS):
+                try:
+                    await asyncio.sleep(_LLM_CALL_INTERVAL_S if llm_calls else 0)
+                    l = await llm_analyze(entry["query"], strict=True)
+                    llm_calls += 1
+                    if l.task_type == entry["expected_task_type"]:
+                        llm_hits += 1
+                    break
+                except httpx.HTTPStatusError as exc:
+                    if exc.response.status_code != 429 or attempt == _LLM_MAX_ATTEMPTS - 1:
+                        llm_failures += 1
+                        break
+                    await asyncio.sleep(_LLM_429_BACKOFF_S * (attempt + 1))
+                except Exception:
+                    llm_failures += 1
+                    break
 
     n = len(dataset)
     result = {
         "heuristic_task_type_accuracy": round(heuristic_hits / n, 4) if n else 0.0,
         "llm_task_type_accuracy": None,
         "llm_analyzer_skipped": not llm_available,
+        "llm_classified": llm_calls,
+        "llm_failed": llm_failures,
     }
-    if llm_available:
-        result["llm_task_type_accuracy"] = round(llm_hits / n, 4) if n else 0.0
+    if llm_calls:
+        result["llm_task_type_accuracy"] = round(llm_hits / llm_calls, 4)
     return result
+
+
+def _format_llm_row(a: dict) -> str:
+    """Render the LLM analyzer row, including live sample counts when available."""
+    if a.get("llm_analyzer_skipped"):
+        return "skipped (no API key)"
+    accuracy = a.get("llm_task_type_accuracy")
+    if accuracy is None:
+        return "no successful LLM classifications"
+    classified = a.get("llm_classified")
+    failed = a.get("llm_failed")
+    if classified is None:
+        return f"{accuracy:.1%}"
+    detail = f"{accuracy:.1%} ({classified} classified"
+    if failed:
+        detail += f", {failed} failed"
+    return detail + ")"
 
 
 def _write_reports(report: dict) -> tuple[Path, Path]:
@@ -245,7 +289,7 @@ def _write_reports(report: dict) -> tuple[Path, Path]:
 | Analyzer | Task-type accuracy |
 |----------|-------------------|
 | Heuristic | {a["heuristic_task_type_accuracy"]:.1%} |
-| LLM | {"skipped (no API key)" if a["llm_analyzer_skipped"] else f'{a["llm_task_type_accuracy"]:.1%}'} |
+| LLM | {_format_llm_row(a)} |
 
 ## Config
 
@@ -279,6 +323,7 @@ async def main() -> None:
     print(f"  Cost savings:      {routing['cost_savings_pct']}%")
     print(f"  Avg overhead:      {routing['avg_routing_overhead_ms']} ms")
     print(f"  Heuristic accuracy:{analyzers['heuristic_task_type_accuracy']:.1%}")
+    print(f"  LLM accuracy:      {_format_llm_row(analyzers)}")
     print(f"  Reports: {json_path.name}, {md_path.name}")
 
 

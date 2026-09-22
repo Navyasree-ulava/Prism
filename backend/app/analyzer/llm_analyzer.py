@@ -1,7 +1,10 @@
 """LLM-based prompt analyzer — single cheap LLM call returning AnalysisResult JSON.
 
 Used when ANALYZER_MODE=llm. Falls back to heuristic analyzer if no API key
-is configured or the LLM call fails.
+is configured or the LLM call fails (strict=False, the default).
+
+strict=True (used by the eval harness) instead propagates the underlying
+error, so callers can tell a real LLM classification apart from a fallback.
 """
 from __future__ import annotations
 
@@ -30,7 +33,8 @@ Return ONLY valid JSON with these exact keys:
 Capability options: general, coding, reasoning, summarization, qa, long_context.
 Map task_type to capabilities: coding→[coding,reasoning]; summarization→[summarization,general];
 qa→[qa,general]; general→[general].
-Estimate tokens as word_count × 1.3 (integer)."""
+For estimated_input_tokens, compute word_count × 1.3 yourself and write only the
+final rounded integer (e.g. 650) — never a formula or expression."""
 
 
 def _extract_json(text: str) -> dict:
@@ -42,16 +46,27 @@ def _extract_json(text: str) -> dict:
     return json.loads(text)
 
 
-async def analyze(prompt: str) -> AnalysisResult:
-    """Classify *prompt* via a cheap LLM call; fall back to heuristic on failure."""
+async def analyze(prompt: str, *, strict: bool = False) -> AnalysisResult:
+    """Classify *prompt* via a cheap LLM call; fall back to heuristic on failure.
+
+    Args:
+        prompt:  Raw user prompt to classify.
+        strict:  If True, raise on any failure instead of falling back to the
+                 heuristic analyzer. Used by the eval harness so measured
+                 "LLM accuracy" only reflects genuine LLM classifications.
+    """
     if not settings.groq_api_key and not settings.openai_api_key:
+        if strict:
+            raise RuntimeError("LLM analyzer: no API key configured")
         logger.warning("No API key for LLM analyzer — falling back to heuristic")
         return heuristic_analyze(prompt)
 
     provider = "groq" if settings.groq_api_key else "openai"
     if provider == "groq":
         url = "https://api.groq.com/openai/v1/chat/completions"
-        model = "llama3-8b-8192"
+        # llama3-8b-8192 was decommissioned by Groq (Sept 2026); allam-2-7b is
+        # the smallest currently-available model that reliably returns our JSON.
+        model = "allam-2-7b"
         api_key = settings.groq_api_key
     else:
         url = "https://api.openai.com/v1/chat/completions"
@@ -66,6 +81,9 @@ async def analyze(prompt: str) -> AnalysisResult:
         ],
         "temperature": 0,
         "max_tokens": 256,
+        # JSON mode: guarantees syntactically valid JSON (blocks model-echoed
+        # formulas like "estimated_input_tokens": (1000 * 1.3)).
+        "response_format": {"type": "json_object"},
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -81,5 +99,7 @@ async def analyze(prompt: str) -> AnalysisResult:
         parsed = _extract_json(content)
         return AnalysisResult.model_validate(parsed)
     except Exception as exc:
+        if strict:
+            raise
         logger.warning("LLM analyzer failed (%s) — falling back to heuristic", exc)
         return heuristic_analyze(prompt)

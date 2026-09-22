@@ -61,3 +61,95 @@ def test_write_reports_creates_json_and_markdown(tmp_path, monkeypatch):
     assert md_path.exists()
     assert json.loads(json_path.read_text(encoding="utf-8"))["dataset_size"] == 60
     assert "Routing accuracy" in md_path.read_text(encoding="utf-8")
+
+
+def test_format_llm_row_reports_live_sample_counts():
+    """Live runs must show classified/failed counts, never a bare fallback-blurred number."""
+    assert run_eval._format_llm_row({"llm_analyzer_skipped": True}) == "skipped (no API key)"
+    assert (
+        run_eval._format_llm_row({"llm_analyzer_skipped": False, "llm_task_type_accuracy": None})
+        == "no successful LLM classifications"
+    )
+    assert (
+        run_eval._format_llm_row({
+            "llm_analyzer_skipped": False,
+            "llm_task_type_accuracy": 0.9,
+            "llm_classified": 60,
+            "llm_failed": 0,
+        })
+        == "90.0% (60 classified)"
+    )
+    assert (
+        run_eval._format_llm_row({
+            "llm_analyzer_skipped": False,
+            "llm_task_type_accuracy": 0.5,
+            "llm_classified": 4,
+            "llm_failed": 2,
+        })
+        == "50.0% (4 classified, 2 failed)"
+    )
+    # Reports written before Phase 8 lack the count keys — still render.
+    assert (
+        run_eval._format_llm_row({"llm_analyzer_skipped": False, "llm_task_type_accuracy": 0.933})
+        == "93.3%"
+    )
+
+
+@pytest.mark.asyncio
+async def test_analyzer_eval_marks_llm_failed_when_strict_call_raises(monkeypatch):
+    """A failing LLM call must be counted as failed, not silently scored as heuristic."""
+    from unittest.mock import AsyncMock
+
+    import app.analyzer.llm_analyzer as llm_mod
+
+    monkeypatch.setattr(run_eval.settings, "groq_api_key", "test-key")
+    monkeypatch.setattr(run_eval.settings, "openai_api_key", "")
+    monkeypatch.setattr(run_eval, "_LLM_CALL_INTERVAL_S", 0)
+    monkeypatch.setattr(
+        llm_mod, "analyze",
+        AsyncMock(side_effect=RuntimeError("simulated LLM outage")),
+    )
+
+    dataset = [
+        {"query": "What is the capital of France?", "expected_task_type": "qa"},
+        {"query": "Write a function to reverse a string", "expected_task_type": "coding"},
+    ]
+    result = await run_eval._run_analyzer_eval(dataset)
+
+    assert result["llm_analyzer_skipped"] is False
+    assert result["llm_classified"] == 0
+    assert result["llm_failed"] == 2
+    assert result["llm_task_type_accuracy"] is None, "failed calls must not produce an accuracy"
+    assert 0.0 <= result["heuristic_task_type_accuracy"] <= 1.0
+
+
+@pytest.mark.asyncio
+async def test_analyzer_eval_counts_only_successful_llm_classifications(monkeypatch):
+    from unittest.mock import AsyncMock
+
+    import app.analyzer.llm_analyzer as llm_mod
+    from app.analyzer.heuristic_analyzer import AnalysisResult
+
+    correct = AnalysisResult(
+        task_type="qa", complexity="low", required_capabilities=["qa"],
+        context_requirement="low", estimated_input_tokens=10, confidence=0.9,
+    )
+    wrong = AnalysisResult(
+        task_type="general", complexity="low", required_capabilities=["general"],
+        context_requirement="low", estimated_input_tokens=10, confidence=0.9,
+    )
+
+    monkeypatch.setattr(run_eval.settings, "groq_api_key", "test-key")
+    monkeypatch.setattr(run_eval.settings, "openai_api_key", "")
+    monkeypatch.setattr(run_eval, "_LLM_CALL_INTERVAL_S", 0)
+    monkeypatch.setattr(llm_mod, "analyze", AsyncMock(side_effect=[correct, wrong]))
+
+    dataset = [
+        {"query": "What is the capital of France?", "expected_task_type": "qa"},
+        {"query": "Tell me a joke", "expected_task_type": "general"},
+    ]
+    result = await run_eval._run_analyzer_eval(dataset)
+
+    assert result["llm_classified"] == 2
+    assert result["llm_failed"] == 0
+    assert result["llm_task_type_accuracy"] == 1.0
